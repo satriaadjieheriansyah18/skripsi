@@ -25,6 +25,7 @@ class AdminOrderController extends Controller
                    ->orderBy('created_at', $dateSort)
                    ->get();
 
+
     return response()->json($orders);
 }
 
@@ -56,8 +57,8 @@ class AdminOrderController extends Controller
         }
 
         return response()->json([
-            'tbody' => $html,
-            'pagination' => $orders->links()->render()
+            'orders' => $orders,  // Mengirim data pesanan dalam JSON
+            'pagination' => $orders->links()->render()  // Update pagination
         ]);
     }
     return view('admin.dashboard', compact('orders'));

@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Order;
 use Illuminate\Support\Facades\Storage;
+use App\Models\User;
+
 
 
 class OrderController extends Controller
@@ -26,7 +28,7 @@ class OrderController extends Controller
                 'bukti_transfer' => 'required|image', // Validasi bukti transfer (gambar)
             ]);
 
-
+            $user = User::findOrFail($validated['user_id']);
             // Mengupload bukti transfer
             $imagePath = $request->file('bukti_transfer')->store('bukti_transfer', 'public'); // Simpan ke storage/bukti_transfer
 
@@ -42,7 +44,8 @@ class OrderController extends Controller
             $order->product = $validated['product'];
             $order->user_id = $validated['user_id'];
             $order->bukti_transfer = $imagePath; // Simpan path bukti transfer
-            $order->order_time = now(); // Tanggal pemesanan saat ini
+            $order->order_time = now();
+             // Tanggal pemesanan saat ini
 
             $order->save();
 
@@ -72,7 +75,7 @@ class OrderController extends Controller
                                'total' => $order->total,
                                'status' => $order->status,
                                'product' => $order->product,
-                               'order_time' => $order->created_at->format('d M Y'),
+                               'order_time' => $order->created_at->toIso8601String(),
                                'bukti_transfer' => Storage::url($order->bukti_transfer), // URL bukti transfer
                            ];
                        });

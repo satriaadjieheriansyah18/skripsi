@@ -10,5 +10,6 @@ Route::prefix('admin')->group(function () {
 
     Route::get('/dashboard', [AdminOrderController::class, 'index'])->name('admin.dashboard');
     Route::put('/orders/{id}/status', [AdminOrderController::class, 'updateStatus'])->name('admin.orders.updateStatus');
+    Route::get('/fetch-orders', [AdminOrderController::class, 'fetchOrders'])->name('admin.fetchOrders');
 });
 

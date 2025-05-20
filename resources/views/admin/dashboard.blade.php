@@ -246,7 +246,7 @@
           </td>
           <td>{{ $order->qty }}</td>
           <td>Rp.{{ number_format($order->total, 0, ',', '.') }}</td>
-          <td>{{ $order->created_at->format('d M Y') }}</td>
+          <td>{{ \Carbon\Carbon::parse($order->created_at)->toIso8601String() }}</td> 
           <td>
             <!-- Link untuk melihat bukti transfer -->
             <a href="{{ Storage::url($order->bukti_transfer) }}" target="_blank">Lihat Bukti Transfer</a>
@@ -296,43 +296,59 @@
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/pusher-js@7.0.3/dist/web/pusher.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/laravel-echo/1.11.3/echo.js"></script>
 <script>
-  $(document).ready(function() {
-    // Inisialisasi Laravel Echo untuk mendengarkan event `new.order`
-    window.Echo.channel('orders')
-      .listen('NewOrderCreated', (event) => {
-        const order = event.order;
+  // Fungsi polling untuk mendapatkan pesanan terbaru
+  function loadOrders() {
+    $.ajax({
+      url: '{{ route("admin.dashboard") }}',  // Memanggil route untuk dashboard admin
+      method: 'GET',
+      data: {
+        month: $('#month').val(),  // Mengirimkan filter bulan
+        year: $('#year').val(),    // Mengirimkan filter tahun
+        date_sort: 'desc'          // Mengirimkan filter urutan berdasarkan tanggal
+      },
+      success: function(data) {
+        // Looping untuk menambahkan baris baru di tabel tanpa menghapus data lama
+        data.orders.forEach(function(order) {
+          let newRow = `
+            <tr>
+              <td>${order.nama}</td>
+              <td>${order.no_telp}</td>
+              <td>${order.alamat}</td>
+              <td><a href="${order.maps_link}" target="_blank">Lihat Maps</a></td>
+              <td>${order.qty}</td>
+              <td>Rp.${order.total.toLocaleString()}</td>
+              <td>${new Date(order.created_at).toLocaleDateString()}</td>
+              <td><a href="${order.bukti_transfer}" target="_blank">Lihat Bukti Transfer</a></td>
+              <td>
+                <form action="/admin/orders/${order.id}/status" method="POST" class="status-form">
+                  <select name="status" onchange="this.form.submit()">
+                    <option value="sedang diproses" ${order.status === 'sedang diproses' ? 'selected' : ''}>Diproses</option>
+                    <option value="sedang diantar" ${order.status === 'sedang diantar' ? 'selected' : ''}>Diantar</option>
+                    <option value="selesai" ${order.status === 'selesai' ? 'selected' : ''}>Selesai</option>
+                  </select>
+                </form>
+              </td>
+            </tr>
+          `;
+          // Menambahkan baris baru ke tabel (di atas atau bawah, tergantung preferensi Anda)
+          $('#ordersTable tbody').prepend(newRow); // Menambahkan di atas, bisa diganti dengan .append() jika ingin di bawah
+        });
 
-        // Menambahkan baris baru di tabel
-        let newRow = `
-          <tr>
-            <td>${order.nama}</td>
-            <td>${order.no_telp}</td>
-            <td>${order.alamat}</td>
-            <td><a href="${order.maps_link}" target="_blank">Lihat Maps</a></td>
-            <td>${order.qty}</td>
-            <td>Rp.${order.total.toLocaleString()}</td>
-            <td>${new Date(order.created_at).toLocaleDateString()}</td>
-            <td><a href="${order.bukti_transfer}" target="_blank">Lihat Bukti Transfer</a></td>
-            <td>
-              <form action="/admin/orders/${order.id}/status" method="POST" class="status-form">
-                <select name="status" onchange="this.form.submit()">
-                  <option value="sedang diproses" ${order.status === 'sedang diproses' ? 'selected' : ''}>Diproses</option>
-                  <option value="sedang diantar" ${order.status === 'sedang diantar' ? 'selected' : ''}>Diantar</option>
-                  <option value="selesai" ${order.status === 'selesai' ? 'selected' : ''}>Selesai</option>
-                </select>
-              </form>
-            </td>
-          </tr>
-        `;
+        // Update pagination (jika perlu)
+        $('.pagination').html(data.pagination);
+      },
+      error: function(error) {
+        console.error('Error fetching orders:', error);
+      }
+    });
+  }
 
-        // Menambahkan baris baru ke tabel
-        $('#ordersTable tbody').prepend(newRow);
-      });
-  });
+  // Setiap 5 detik, lakukan polling untuk mengambil data pesanan terbaru
+  setInterval(loadOrders, 5000); // 5000 ms = 5 detik
 </script>
+
+
 
 </body>
 </html>
