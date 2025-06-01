@@ -175,6 +175,12 @@
     .status-form {
       margin: 0;
     }
+
+    .new-order-row {
+      background-color: #dff0d8; /* hijau muda sebagai contoh */
+      font-weight: bold;
+    }
+
   </style>
 </head>
 <body>
@@ -196,7 +202,7 @@
         <label for="month">Bulan:</label>
         <select name="month" id="month">
           @for ($i = 1; $i <= 12; $i++)
-            <option value="{{ $i }}" {{ request('month') == $i ? 'selected' : '' }}>
+            <option value="{{ $i }}" {{ (old('month', $month ?? now()->month) == $i) ? 'selected' : '' }}>
               {{ \Carbon\Carbon::create()->month($i)->format('F') }}
             </option>
           @endfor
@@ -206,9 +212,9 @@
       <div style = "margin-left : 10px; margin-right : 15px;">
         <label for="year">Tahun:</label>
         <select name="year" id="year">
-          @foreach (range(2020, \Carbon\Carbon::now()->year) as $year)
-            <option value="{{ $year }}" {{ request('year') == $year ? 'selected' : '' }}>
-              {{ $year }}
+          @foreach (range(2020, \Carbon\Carbon::now()->year) as $y)
+             <option value="{{ $y }}" {{ (old('year', $year ?? now()->year) == $y) ? 'selected' : '' }}>
+                {{ $y }}
             </option>
           @endforeach
         </select>
@@ -235,7 +241,10 @@
     </thead>
     <tbody>
       @foreach ($orders as $order)
-        <tr>
+        @php
+          $isNew = $order->created_at->isToday();
+        @endphp
+        <tr class="{{ $isNew ? 'new-order-row' : '' }}" data-id="{{ $order->id }}">
           <td>{{ $order->nama }}</td>
           <td>{{ $order->no_telp }}</td>
           <td>{{ $order->alamat }}</td>
@@ -299,40 +308,31 @@
 <script src="https://cdn.jsdelivr.net/npm/pusher-js@7.0.3/dist/web/pusher.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/laravel-echo/1.11.3/echo.js"></script>
 <script>
-  $(document).ready(function() {
-    // Inisialisasi Laravel Echo untuk mendengarkan event `new.order`
-    window.Echo.channel('orders')
-      .listen('NewOrderCreated', (event) => {
-        const order = event.order;
+  const storageKey = 'clickedOrderRows';
 
-        // Menambahkan baris baru di tabel
-        let newRow = `
-          <tr>
-            <td>${order.nama}</td>
-            <td>${order.no_telp}</td>
-            <td>${order.alamat}</td>
-            <td><a href="${order.maps_link}" target="_blank">Lihat Maps</a></td>
-            <td>${order.qty}</td>
-            <td>Rp.${order.total.toLocaleString()}</td>
-            <td>${new Date(order.created_at).toLocaleDateString()}</td>
-            <td><a href="${order.bukti_transfer}" target="_blank">Lihat Bukti Transfer</a></td>
-            <td>
-              <form action="/admin/orders/${order.id}/status" method="POST" class="status-form">
-                <select name="status" onchange="this.form.submit()">
-                  <option value="sedang diproses" ${order.status === 'sedang diproses' ? 'selected' : ''}>Diproses</option>
-                  <option value="sedang diantar" ${order.status === 'sedang diantar' ? 'selected' : ''}>Diantar</option>
-                  <option value="selesai" ${order.status === 'selesai' ? 'selected' : ''}>Selesai</option>
-                </select>
-              </form>
-            </td>
-          </tr>
-        `;
+  // Ambil array ID order yang sudah diklik dari localStorage, atau buat kosong jika belum ada
+  let clickedRows = JSON.parse(localStorage.getItem(storageKey)) || [];
 
-        // Menambahkan baris baru ke tabel
-        $('#ordersTable tbody').prepend(newRow);
-      });
+  // Saat halaman load
+  document.querySelectorAll('tbody tr.new-order-row').forEach(row => {
+    const id = row.getAttribute('data-id');
+
+    // Kalau row ini sudah diklik sebelumnya, hilangkan kelas highlight
+    if (clickedRows.includes(id)) {
+      row.classList.remove('new-order-row');
+    }
+
+    // Pas klik row, hilangkan highlight dan simpan ID ke localStorage
+    row.addEventListener('click', () => {
+      row.classList.remove('new-order-row');
+      if (!clickedRows.includes(id)) {
+        clickedRows.push(id);
+        localStorage.setItem(storageKey, JSON.stringify(clickedRows));
+      }
+    });
   });
 </script>
+
 
 </body>
 </html>

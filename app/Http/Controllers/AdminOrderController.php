@@ -11,10 +11,6 @@ class AdminOrderController extends Controller
 {
     public function fetchOrders(Request $request)
 {
-    \Log::info('Month: ' . $request->input('month'));
-    \Log::info('Year: ' . $request->input('year'));
-    \Log::info('Date sort: ' . $request->input('date_sort'));
-
 
     $month = $request->input('month', date('m'));
     $year = $request->input('year', date('Y'));
@@ -33,23 +29,25 @@ class AdminOrderController extends Controller
     
     public function index(Request $request)
 {
-
     if (!Session::has('admin_id')) {
         return redirect()->route('admin.login');
     }
-    
+
     $dateSort = $request->input('date_sort', 'desc');
 
-    $month = $request->input('month', date('m'));
-    $year = $request->input('year', date('Y'));
+    $query = Order::orderBy('created_at', $dateSort);
 
-    // Filter pesanan berdasarkan bulan dan tahun
-    $orders = Order::whereMonth('created_at', $month)
-                   ->whereYear('created_at', $year)
-                   ->orderBy('created_at', $dateSort)
-                   ->paginate(20);
+    if ($request->has('month') && !empty($request->month)) {
+        $query->whereMonth('created_at', $request->month);
+    }
 
-        if ($request->ajax()) {
+    if ($request->has('year') && !empty($request->year)) {
+        $query->whereYear('created_at', $request->year);
+    }
+
+    $orders = $query->paginate(20);
+
+    if ($request->ajax()) {
         $html = '';
         foreach ($orders as $order) {
             $html .= view('admin.order_row', compact('order'))->render();
@@ -60,8 +58,14 @@ class AdminOrderController extends Controller
             'pagination' => $orders->links()->render()
         ]);
     }
-    return view('admin.dashboard', compact('orders'));
+
+    // Kirim juga month dan year ke view supaya bisa dipakai default value filter di Blade
+    $month = $request->month ?? null;
+    $year = $request->year ?? null;
+
+    return view('admin.dashboard', compact('orders', 'month', 'year'));
 }
+
 
 
     public function updateStatus(Request $request, $id)
