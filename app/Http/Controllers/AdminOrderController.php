@@ -47,6 +47,9 @@ class AdminOrderController extends Controller
 
     $orders = $query->paginate(20);
 
+    $totalOrders = (clone $query)->count();
+    $totalRevenue = (clone $query)->sum('total');
+
     if ($request->ajax()) {
         $html = '';
         foreach ($orders as $order) {
@@ -63,7 +66,7 @@ class AdminOrderController extends Controller
     $month = $request->month ?? null;
     $year = $request->year ?? null;
 
-    return view('admin.dashboard', compact('orders', 'month', 'year'));
+    return view('admin.dashboard', compact('orders', 'month', 'year','totalOrders', 'totalRevenue'));
 }
 
 

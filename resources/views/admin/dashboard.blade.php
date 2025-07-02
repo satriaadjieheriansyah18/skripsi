@@ -300,6 +300,12 @@
       @endif
     </div>
   </div>
+
+  <div style="margin-top: 10px; text-align: center; font-size: 16px;">
+    <strong>Total Pesanan:</strong> {{ $totalOrders }} |
+    <strong>Total Pendapatan:</strong> Rp.{{ number_format($totalRevenue, 0, ',', '.') }}
+</div>
+
 </div>
 
 
